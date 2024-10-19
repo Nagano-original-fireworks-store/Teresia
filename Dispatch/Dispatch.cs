@@ -17,9 +17,9 @@ namespace Dispatch
 {
     public class Dispatch : IRouteProvider
     {
-        public bool IsNeedInit => false;
-
-        public void Init(){}
+        public static RegionSimpleInfo[] regionSimpleInfos = [];
+        public bool IsNeedInit => true;
+        public void Init() => GenDispatchListAndCurr();
 
         public Route[] GetRoutes()
         {
@@ -106,9 +106,87 @@ namespace Dispatch
 
             return regionInfo;
         }
+        private static void GenDispatchListAndCurr()
+        {
+            string jsonContent = File.ReadAllText(Config.ProgramConfig.Current.DataFolder+"/region.json");
+            if (string.IsNullOrEmpty(jsonContent))
+            {
+                throw new ArgumentNullException("应有一个区服 !!!");
+            }
+#pragma warning disable 8600,8602 // 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 "required" 修饰符或声明为可为 null。
+            List<DispatchConfig> dataList = JsonConvert.DeserializeObject<List<DispatchConfig>>(jsonContent);
+            Console.WriteLine(dataList.Count);
+#pragma warning restore 8600,8602 // 解引用可能出现空引用。
+            
+            foreach (var data in dataList)
+            {
+                if (data.IsCurrUrl)
+                {
+                    if (IsValidUrl(data.Address))
+                    {
+                        RegionSimpleInfo regionInfo = new RegionSimpleInfo()
+                        {
+                            DispatchUrl = data.Address,
+                            Name = data.Name,
+                            Type = data.Type,
+                            Title = data.Title,
+                        };
+                        regionSimpleInfos[data.GetHashCode()] = regionInfo;
+                        Console.WriteLine($"Add {data.Name} Region in list");
+                    }
+                    if (IsValidIpAddressWithPort(data.Address))
+                    {
+                        RegionSimpleInfo regionInfo = new RegionSimpleInfo()
+                        {
+                            DispatchUrl = Config.ProgramConfig.Current.HttpServerAddress+ "/query_cur_region/" + data.Name,
+                            Name = data.Name,
+                            Type = data.Type,
+                            Title = data.Title,
+                        };
+                        regionSimpleInfos[data.GetHashCode()] = regionInfo;
+                        Console.WriteLine($"Add {data.Name} Region in list");
+                    }
+                }
 
 
+                Console.WriteLine($"Name: {data.Name}");
+                Console.WriteLine($"Address: {data.Address}");
+                Console.WriteLine($"IsCurrUrl: {data.IsCurrUrl}");
+            }
+        }
+        public static bool IsValidIpAddressWithPort(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return false;
 
+            // 正则表达式匹配任意IPv4地址和端口号
+            string pattern = @"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\:(\d{1,5})$";
+
+            Regex regex = new Regex(pattern);
+            Match match = regex.Match(input);
+
+            if (match.Success)
+            {
+                // 验证端口号是否在有效范围（0-65535）
+                int port;
+                if (int.TryParse(match.Groups[4].Value, out port) && port >= 0 && port <= 65535)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        public static bool IsValidUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return false;
+
+            string pattern = @"^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+)([\w\.,@?^=%&:/~+#\-]*[\w@?^=%&/~+#\-])?$";
+
+            Regex regex = new Regex(pattern, RegexOptions.IgnoreCase);
+            return regex.IsMatch(url);
+        }
         public struct RegionRsp
         {
             [JsonProperty("content")]
@@ -116,6 +194,25 @@ namespace Dispatch
 
             [JsonProperty("sign")]
             public string? Sign { get; set; }
+        }
+        public class DispatchConfig
+        {
+#pragma warning disable CS8618 // 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 "required" 修饰符或声明为可为 null。
+            [JsonProperty("name")]
+            public string Name { get; set; }
+
+            [JsonProperty("address")]
+            public string Address { get; set; }
+
+            [JsonProperty("title")]
+            public string Title { get; set; }
+
+            [JsonProperty("type")]
+            public string Type { get; set; }
+
+            [JsonProperty("isCurrUrl")]
+            public bool IsCurrUrl { get; set; }
+#pragma warning restore CS8618 // 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 "required" 修饰符或声明为可为 null。
         }
     }
 }
