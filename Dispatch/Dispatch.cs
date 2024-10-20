@@ -153,7 +153,7 @@ namespace Dispatch
                             Title = data.Title,
                         };
                         regionSimpleInfos[data.GetHashCode()] = regionInfo;
-                        Console.WriteLine($"Add {data.Name} Region in list");
+                        Console.WriteLine($"Add {data.Name} Region in list and curr region");
                     }
                 }
 
