@@ -17,6 +17,7 @@ namespace Dispatch
 {
     public class Dispatch : IRouteProvider
     {
+        public static Dictionary<string, Proto.DispatchAllInOne.RegionInfo> RegionInfos = new Dictionary<string, Proto.DispatchAllInOne.RegionInfo>();
         public static RegionSimpleInfo[] regionSimpleInfos = [];
         public bool IsNeedInit => true;
         public void Init() => GenDispatchListAndCurr();
@@ -136,6 +137,14 @@ namespace Dispatch
                     }
                     if (IsValidIpAddressWithPort(data.Address))
                     {
+                        uint gateserverPort;
+                        uint.TryParse(data.Address.Split(":")[1], out gateserverPort);
+                        Proto.DispatchAllInOne.RegionInfo regionInfos = new Proto.DispatchAllInOne.RegionInfo()
+                        {
+                            GateserverIp = data.Address.Split(":")[0],
+                            GateserverPort = gateserverPort,
+                        };
+                        RegionInfos[data.Name] = regionInfos;
                         RegionSimpleInfo regionInfo = new RegionSimpleInfo()
                         {
                             DispatchUrl = Config.ProgramConfig.Current.HttpServerAddress+ "/query_cur_region/" + data.Name,
