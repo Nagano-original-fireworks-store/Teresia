@@ -17,7 +17,7 @@ namespace SharedLibrary.Rsa
                     byte[] hash = sha256.ComputeHash(dataToSign);
 
                     // 对哈希值进行签名 (PKCS#1 v1.5 填充)
-                    byte[] signature = rsa.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                    byte[] signature = rsa.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
                     return signature;
                 }
             }
