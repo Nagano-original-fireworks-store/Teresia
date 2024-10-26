@@ -2,6 +2,8 @@ using System.Reflection;
 using System.Text.Json;
 using static SharedLibrary.SharedLibrary;
 using static SharedLibrary.Config.Config;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(ProgramConfig.Current.HttpServerAddress);
 AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
@@ -9,6 +11,14 @@ AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AllowSynchronousIO = true;
+});
+builder.Services.AddControllers().AddNewtonsoftJson(options =>
+{
+    options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+});
 var app = builder.Build();
 app.UseRouting();
 app.UseEndpoints(endpoints =>
@@ -16,6 +26,7 @@ app.UseEndpoints(endpoints =>
     LoadDynamicRoutes(endpoints);
 });
 app.Run();
+MySQLManager.Instance.CloseConnections();
 static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
 {
     Exception ex = (Exception)e.ExceptionObject;

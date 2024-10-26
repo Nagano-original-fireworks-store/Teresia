@@ -23,7 +23,7 @@ namespace Dispatch
         public static Dictionary<string, Proto.DispatchAllInOne.RegionInfo> RegionInfos = new Dictionary<string, Proto.DispatchAllInOne.RegionInfo>();
         public static List<RegionSimpleInfo> regionSimpleInfos = [];
         public readonly string ListClientStr = @"""{
-    ""sdkenv"": ""3"",
+    ""sdkenv"": ""2"",
     ""checkdevice"": false,
     ""loadPatch"": false,
     ""showexception"": false,
@@ -141,13 +141,13 @@ namespace Dispatch
                         )
                     )
                 );
-            newQueryCurrRegionHttpRsp.RegionCustomConfigEncrypted = ByteString.FromStream(
-                new MemoryStream(
-                    Xor.XorEncryptDecrypt(
-                        Encoding.UTF8.GetBytes(CurrClientStr), File.ReadAllBytes(Configs.ProgramConfig.Current.DataFolder + "/keys/Ec2bKey.bin")
-                        )
-                    )
-                );
+            //newQueryCurrRegionHttpRsp.RegionCustomConfigEncrypted = ByteString.FromStream(
+            //    new MemoryStream(
+            //        Xor.XorEncryptDecrypt(
+            //            Encoding.UTF8.GetBytes(CurrClientStr), File.ReadAllBytes(Configs.ProgramConfig.Current.DataFolder + "/keys/Ec2bKey.bin")
+            //            )
+            //        )
+            //    );
             newQueryCurrRegionHttpRsp.ClientSecretKey = ByteString.FromStream(
                 new MemoryStream(
                     File.ReadAllBytes(
@@ -162,7 +162,7 @@ namespace Dispatch
                 Content = Convert.ToBase64String(encdata),
                 Sign = Convert.ToBase64String(signData)
             };
-            return Task.FromResult(Http.NewResponse(200, "application/json", JsonConvert.SerializeObject(regionRsp)));
+            return Task.FromResult(Http.NewResponse(200, "application/json;", JsonConvert.SerializeObject(regionRsp)));
         }
         private static Proto.DispatchAllInOne.RegionInfo RegionInfo()
         {
@@ -220,10 +220,6 @@ namespace Dispatch
                     regionSimpleInfos.Add(regionInfo);
                     Console.WriteLine($"Add {data.Name} Region in list and curr region");
                 }
-
-                Console.WriteLine($"Name: {data.Name}");
-                Console.WriteLine($"Address: {data.Address}");
-                Console.WriteLine($"IsCurrUrl: {data.IsCurrUrl}");
             }
         }
         public static bool IsValidIpAddressWithPort(string input)

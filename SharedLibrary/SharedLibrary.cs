@@ -8,7 +8,7 @@ namespace SharedLibrary
     {
         public class Http
         {
-            public static JsonResponse NewJsonResponse(uint retcode,string? data = null,string? message = null)
+            public static JsonResponse NewJsonResponse(uint retcode,object? data = null,string? message = null)
             {
                 return new JsonResponse()
                 {
@@ -17,7 +17,7 @@ namespace SharedLibrary
                     Retcode = retcode
                 };
             }
-            public static Response NewResponse(int statusCodes,string? ContentType = "text/plain", string? Content = null)
+            public static Response NewResponse(int statusCodes,string? ContentType = "text/plain", object? Content = null)
             {
                 if ((int)statusCodes >= 100 && (int)statusCodes <= 999)
                 {
@@ -32,7 +32,7 @@ namespace SharedLibrary
                 {
                     StatusCode = statusCodes,
                     Content = Content,
-                    ContentType = "text/plain"
+                    ContentType = ContentType
                 };
             }
         }
