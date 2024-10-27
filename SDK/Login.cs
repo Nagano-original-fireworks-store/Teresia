@@ -100,7 +100,7 @@ namespace SDK
                 { "Port", "3306" },
                 { "Database", "db_hk4e_user_client" },
                 { "User Id", "root" },
-                { "Password", "GCNLLZsxJTjAL5bN" },
+                { "Password", "NULL" },
             };
 
             player.ConnectionString.ToString();
