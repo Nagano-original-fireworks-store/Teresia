@@ -96,7 +96,7 @@ namespace SDK
         {
             var player = new DbConnectionStringBuilder
             {
-                { "Server", "61.136.162.149" },
+                { "Server", "127.0.0.1" },
                 { "Port", "3306" },
                 { "Database", "db_hk4e_user_client" },
                 { "User Id", "root" },
