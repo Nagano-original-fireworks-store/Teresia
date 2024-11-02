@@ -28,12 +28,21 @@ namespace SharedLibrary
                     // 状态码不在 100 到 999 之间
                     throw new ArgumentException("状态码必须为三位数！");
                 }
+#pragma warning disable CS8601 // 引用类型赋值可能为 null。
                 return new Response()
                 {
                     StatusCode = statusCodes,
                     Content = Content,
                     ContentType = ContentType
                 };
+#pragma warning restore CS8601 // 引用类型赋值可能为 null。
+            }
+            public static string ReadRequestBody(Stream requestBody)
+            {
+                using (var reader = new StreamReader(requestBody))
+                {
+                    return reader.ReadToEnd();
+                }
             }
         }
         public struct JsonResponse

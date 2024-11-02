@@ -97,7 +97,6 @@ namespace SDK
             public string SteamName { get; set; }
 #pragma warning restore CS8618 // 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 "required" 修饰符或声明为可为 null。
         }
-
         public class ReqLogin
         {
 #pragma warning disable CS8618 // 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 "required" 修饰符或声明为可为 null。
@@ -109,6 +108,23 @@ namespace SDK
 
             [JsonProperty("is_crypto")]
             public bool IsCrypto { get; set; }
+        }
+        public class VerifyData
+        {
+            [JsonProperty("data")]
+            public string Data { get; set; }
+
+            [JsonProperty("app_id")]
+            public long AppId { get; set; }
+
+            [JsonProperty("channel_id")]
+            public long ChannelId { get; set; }
+
+            [JsonProperty("device")]
+            public string Device { get; set; }
+
+            [JsonProperty("sign")]
+            public string Sign { get; set; }
         }
     }
 }
