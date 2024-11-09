@@ -17,6 +17,7 @@ using SharedLibrary;
 using System.Text;
 using Configs = SharedLibrary.Config.Config;
 using Newtonsoft.Json.Linq;
+using YamlDotNet.Core.Tokens;
 namespace Dispatch
 {
     public class Dispatch : IRouteProvider
@@ -136,26 +137,28 @@ namespace Dispatch
                     Console.WriteLine("未找到版本号");
                 }
             }
+            var region = context.Request.HttpContext.GetRouteValue("region");
+            // 如果 region 为 null，则设置默认值
+            var regionStr = region?.ToString() ?? "DEF";
             Proto.DispatchAllInOne.RegionInfo regionInfo = new Proto.DispatchAllInOne.RegionInfo();
-            if (!string.IsNullOrEmpty(context.Request.HttpContext.GetRouteValue("region").ToString()))
+            if (region != null && !string.IsNullOrEmpty(region.ToString()))
             {
-                if (RegionInfos.ContainsKey(context.Request.HttpContext.GetRouteValue("region").ToString()))
+                if (RegionInfos.ContainsKey(regionStr))
                 {
-                    regionInfo = RegionInfos[context.Request.HttpContext.GetRouteValue("region").ToString()];
+                    regionInfo = RegionInfos[regionStr];
                 }
-
             }
-            Console.WriteLine(context.Request.QueryString.ToString());
 #pragma warning disable 8602
-            regionInfo.DataUrl = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].DataUrl;
-            regionInfo.ResourceUrl = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ResourceUrl;
-            regionInfo.ClientDataVersion = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ClientDataVersion;
-            regionInfo.ClientSilenceDataVersion = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ClientSilenceDataVersion;
-            regionInfo.ClientDataMd5 = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ClientDataMd5;
-            regionInfo.ClientSilenceDataMd5 = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ClientSilenceDataMd5;
-            regionInfo.ClientVersionSuffix = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ClientVersionSuffix;
-            regionInfo.ClientSilenceVersionSuffix = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ClientSilenceVersionSuffix;
-            regionInfo.ResVersionConfig = dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.Update[context.Request.Query["platform"]].ResVersionConfig;
+            Console.WriteLine(context.Request.QueryString.ToString());
+            regionInfo.DataUrl = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].DataUrl;
+            regionInfo.ResourceUrl = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ResourceUrl;
+            regionInfo.ClientDataVersion = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ClientDataVersion;
+            regionInfo.ClientSilenceDataVersion = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ClientSilenceDataVersion;
+            regionInfo.ClientDataMd5 = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ClientDataMd5;
+            regionInfo.ClientSilenceDataMd5 = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ClientSilenceDataMd5;
+            regionInfo.ClientVersionSuffix = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ClientVersionSuffix;
+            regionInfo.ClientSilenceVersionSuffix = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ClientSilenceVersionSuffix;
+            regionInfo.ResVersionConfig = dataList.FirstOrDefault(d => d.Name == regionStr).Ext.Update[context.Request.Query["platform"]].ResVersionConfig;
 #pragma warning restore 8602
             NewQueryCurrRegionHttpRsp newQueryCurrRegionHttpRsp = new NewQueryCurrRegionHttpRsp();
             newQueryCurrRegionHttpRsp.RegionInfo = regionInfo;
@@ -169,7 +172,7 @@ namespace Dispatch
             newQueryCurrRegionHttpRsp.RegionCustomConfigEncrypted = ByteString.FromStream(
                 new MemoryStream(
                     Xor.XorEncryptDecrypt(
-                        Encoding.UTF8.GetBytes(dataList.FirstOrDefault(d => d.Name == context.Request.HttpContext.GetRouteValue("region").ToString()).Ext.RegionCustomConfig.ToString(Formatting.None).ToArray()), File.ReadAllBytes(Configs.ProgramConfig.Current.DataFolder + "/keys/Ec2bKey.bin")
+                        Encoding.UTF8.GetBytes(dataList.FirstOrDefault(d => d.Name == regionStr).Ext.RegionCustomConfig.ToString(Formatting.None).ToArray()), File.ReadAllBytes(Configs.ProgramConfig.Current.DataFolder + "/keys/Ec2bKey.bin")
                         )
                     )
                 );
@@ -227,12 +230,38 @@ namespace Dispatch
             string jsonContent = File.ReadAllText(Configs.ProgramConfig.Current.DataFolder + MethodBase.GetCurrentMethod().DeclaringType.Namespace + "/region.json");
             if (string.IsNullOrEmpty(jsonContent))
             {
-                throw new ArgumentNullException("应有一个区服 !!!");
+                throw new ArgumentNullException("region.json为NULL或者空内容 请检查！");
             }
 
             foreach (var data in dataList)
             {
-                Console.WriteLine(data.Name);
+                if (data.Name == "DEF")
+                {
+                    if (data.IsCurrUrl)
+                    {
+                        Console.WriteLine("DEF区服配置不能为一级dispatch请配置为二级dispatch");
+                    }
+                    if (IsValidIpAddressWithPort(data.Address))
+                    {
+                        uint gateserverPort;
+                        uint.TryParse(data.Address.Split(":")[1], out gateserverPort);
+                        Proto.DispatchAllInOne.RegionInfo regionInfos = new Proto.DispatchAllInOne.RegionInfo()
+                        {
+                            GateserverIp = data.Address.Split(":")[0],
+                            GateserverPort = gateserverPort,
+                        };
+                        RegionInfos[data.Name] = regionInfos;
+                        RegionSimpleInfo regionInfo = new RegionSimpleInfo()
+                        {
+                            DispatchUrl = Configs.ProgramConfig.Current.HttpServerAddress + "/query_cur_region/" + data.Name,
+                            Name = data.Name,
+                            Type = data.Type,
+                            Title = data.Title,
+                        };
+                        regionSimpleInfos.Add(regionInfo);
+                        Console.WriteLine($"Add {data.Name} Region in list and curr region");
+                    }
+                }
                 if (data.IsCurrUrl)
                 {
                     if (IsValidUrl(data.Address))
@@ -269,6 +298,48 @@ namespace Dispatch
                     Console.WriteLine($"Add {data.Name} Region in list and curr region");
                 }
             }
+            if (dataList.FirstOrDefault(d => d.Name == "DEF") == null) {
+#pragma warning disable CS8602 // 解引用可能出现空引用。
+                DispatchConfig dispatchConfig = new DispatchConfig();
+                dispatchConfig.Name = "DEF";
+                dispatchConfig.Address = "127.0.0.1:20001";
+                dispatchConfig.IsCurrUrl = false;
+                dispatchConfig.Title = "DEF";
+                dispatchConfig.Type = "DEV_PUBLIC";
+
+                List<string> value = ["8"];
+                ExtClass extClass = new ExtClass { 
+                RegionCustomConfig = new JObject
+                    {
+                        ["coverSwitch"] = new JArray(value),
+                        ["perf_report_config_url"] = "http://127.0.0.1/api/perf_report_config/config/verify",
+                        ["perf_report_record_url"] = "http://127.0.0.1/api/perf_report_record/dataUpload",
+                    }
+                };
+                extClass.Update = new Dictionary<string, Proto.DispatchAllInOne.RegionInfo>();
+                for (int i = 0; i < 11; i++)
+                {
+                    // 每次循环都创建一个新的 RegionInfo 实例，并设置一些属性
+                    Proto.DispatchAllInOne.RegionInfo region = new Proto.DispatchAllInOne.RegionInfo
+                    {
+                        ResourceUrl = "A",
+                        DataUrl = "B",
+                    };
+                    extClass.Update.Add(i.ToString(),region);
+                }
+                dispatchConfig.Ext = extClass;
+                RegionSimpleInfo regionInfo = new RegionSimpleInfo()
+                {
+                    DispatchUrl = Configs.ProgramConfig.Current.HttpServerAddress + "/query_cur_region/" + "DEF",
+                    Name = dispatchConfig.Name,
+                    Type = dispatchConfig.Type,
+                    Title = dispatchConfig.Title,
+                };
+                Console.WriteLine("Add DEF Region in list And Region");
+                regionSimpleInfos.Add(regionInfo);
+                dataList.Add(dispatchConfig);
+#pragma warning restore CS8602 // 解引用可能出现空引用。
+            };
         }
         public static bool IsValidIpAddressWithPort(string input)
         {
