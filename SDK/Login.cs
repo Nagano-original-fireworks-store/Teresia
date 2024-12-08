@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using static SDK.Struct;
 using System.Reflection;
 using System.Text;
+using SharedLibrary.Config;
 namespace SDK
 {
     public class Login : IRouteProvider
@@ -117,20 +118,9 @@ namespace SDK
         }
         private static void Inits()
         {
-            var player = new DbConnectionStringBuilder
-            {
-                { "Server", "127.0.0.1" },
-                { "Port", "3306" },
-                { "Database", "db_hk4e_user_client" },
-                { "User Id", "root" },
-                { "Password", "NULL" },
-            };
-
-            player.ConnectionString.ToString();
-
             string[] connectionStrings = new string[]
             {
-                player.ConnectionString.ToString(),
+                Config.ProgramConfig.Current.MySqlConfig[Proto.Enum.MysqlIndex.PlayerUid].BuildConnectionString(),
             };
             MySQLManager.Instance.Init(connectionStrings);
         }
